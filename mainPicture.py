@@ -1,5 +1,17 @@
 import cv2
 import numpy as np
+from picamera2 import Picamera2
+from libcamera import controls
+
+picam2 = Picamera2()
+picam2.configuration(picam2.create_preview_configuration(main={"format":'XRGB8888', "size":(640,480)}))
+picam2.start()
+
+fps = 30
+frame_width = 640
+frame_height = 480
+
+position = 0.0
 
 # Camera setup
 cap = cv2.VideoCapture(0)  # Change to your camera index if needed
@@ -42,19 +54,17 @@ def process_contours(contours, frame, color_name):
 
 
 while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+    im = picam2.capture_array()
 
-    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    hsv_frame = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
     for color, ranges in color_ranges.items():
         mask = sum([cv2.inRange(hsv_frame, lower, upper) for lower, upper in ranges])
         mask = cv2.medianBlur(mask, 5)  # Reduce noise
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        process_contours(contours, frame, color)
+        process_contours(contours, im, color)
 
-    cv2.imshow("Drone Camera Feed", frame)
+    cv2.imshow("Drone Camera Feed", im)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
